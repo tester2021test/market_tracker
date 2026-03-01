@@ -620,7 +620,7 @@ def main():
         for kw in ("SENSEX", "NIFTY 50", "PANIC", "collapse", "VIX spiked")
     )
     if alerts and critical:
-        time.sleep(1.5)
+        time.sleep(3.5)
         print("  🚨 Sending alert ping...")
         send_telegram(build_alert_msg(alerts, sensex, nifty, now_str))
 
