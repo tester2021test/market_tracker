@@ -1,0 +1,93 @@
+name: 🇮🇳 India Market Tracker
+
+on:
+  # ── Runs every 5 minutes during IST market hours (Mon–Fri) ──
+  # IST = UTC+5:30 | Market: 9:15–15:30 IST = 3:45–10:00 UTC
+  # Cron runs in UTC; we add pre-open buffer (3:15 UTC = 8:45 IST)
+  schedule:
+    - cron: "*/5 3-10 * * 1-5"    # Mon–Fri, 3:00–10:55 UTC (8:30–16:25 IST)
+
+  # ── Manual trigger (useful for testing or after-hours checks) ──
+  workflow_dispatch:
+    inputs:
+      force_run:
+        description: "Force run even outside market hours"
+        required: false
+        default: "false"
+        type: choice
+        options: ["true", "false"]
+
+# Prevent overlapping runs
+concurrency:
+  group: market-tracker
+  cancel-in-progress: true
+
+jobs:
+  track-market:
+    name: 📊 Fetch & Broadcast Market Data
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: write   # needed to push CSV updates
+
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+      CSV_PATH:           data/market_history.csv
+      FORCE_RUN:          ${{ github.event.inputs.force_run || 'false' }}
+      TZ:                 Asia/Kolkata
+
+    steps:
+      # ── 1. Checkout repo ──
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # ── 2. Set up Python ──
+      - name: 🐍 Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # ── 3. Install dependencies ──
+      - name: 📦 Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      # ── 4. Create data directory if missing ──
+      - name: 📁 Ensure data directory exists
+        run: mkdir -p data
+
+      # ── 5. Run market tracker ──
+      - name: 🚀 Run market tracker
+        run: python market_tracker.py
+
+      # ── 6. Commit & push CSV if changed ──
+      - name: 💾 Commit CSV update
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Stage only CSV file (not the whole repo)
+          git add data/market_history.csv
+
+          # Only commit if there's actually a change
+          if git diff --cached --quiet; then
+            echo "ℹ️  No CSV changes to commit"
+          else
+            TIMESTAMP=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M IST')
+            git commit -m "📊 Market update — ${TIMESTAMP}"
+            git push
+          fi
+
+      # ── 7. Upload CSV as artifact (30-day retention) ──
+      - name: 📤 Upload CSV artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: market-history-${{ github.run_number }}
+          path: data/market_history.csv
+          retention-days: 30
