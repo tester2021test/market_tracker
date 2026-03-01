@@ -611,7 +611,7 @@ def main():
     print(f"  MSG2: {len(msg2)} chars")
 
     send_telegram(msg1)
-    time.sleep(1.5)
+    time.sleep(3.5)
     send_telegram(msg2)
 
     # Separate loud ping for major events
