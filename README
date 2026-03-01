@@ -1,0 +1,151 @@
+# 🇮🇳 India Market Tracker
+
+> Automated **Sensex · Nifty 50 · India VIX** tracker with Telegram alerts and GitHub CSV history.
+
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-Automated-blue?logo=github-actions)
+![Python](https://img.shields.io/badge/Python-3.11-green?logo=python)
+![Data](https://img.shields.io/badge/Data-Yahoo_Finance-purple)
+
+---
+
+## 📦 Files
+
+```
+├── market_tracker.py                    ← Main script
+├── requirements.txt                     ← Python dependencies
+├── data/
+│   └── market_history.csv              ← Auto-updated history (committed by bot)
+└── .github/
+    └── workflows/
+        └── market_tracker.yml          ← GitHub Actions (every 5 min)
+```
+
+---
+
+## 🚀 Quick Setup
+
+### Step 1 — Fork / Clone this repo
+
+### Step 2 — Create a Telegram Bot
+
+1. Open Telegram → search **@BotFather**
+2. Send `/newbot` → follow prompts → copy the **Bot Token**
+3. Start a chat with your bot (or add it to a group)
+4. Get your **Chat ID**:
+   - For personal: visit `https://api.telegram.org/bot<TOKEN>/getUpdates` after sending `/start`
+   - For a group: add `@userinfobot` to the group
+
+### Step 3 — Add GitHub Secrets
+
+Go to your repo → **Settings → Secrets and variables → Actions → New repository secret**
+
+| Secret Name          | Value                        |
+|----------------------|------------------------------|
+| `TELEGRAM_BOT_TOKEN` | Your bot token from BotFather |
+| `TELEGRAM_CHAT_ID`   | Your chat or group ID        |
+
+### Step 4 — Enable GitHub Actions
+
+Go to **Actions tab** → enable workflows if prompted.
+
+### Step 5 — Test it manually
+
+Go to **Actions → India Market Tracker → Run workflow** → set `force_run = true`
+
+---
+
+## 📊 Features
+
+| Feature | Details |
+|---|---|
+| **Indices** | Sensex (^BSESN), Nifty 50 (^NSEI), India VIX (^INDIAVIX) |
+| **Update Frequency** | Every 5 minutes during market hours (Mon–Fri 9:15–15:30 IST) |
+| **Drop Alerts** | 🚨 Separate alert if Sensex or Nifty drops ≥1% from previous close |
+| **VIX Spike Alert** | 🚨 Alert if India VIX spikes ≥15% in a session |
+| **RSI Signal** | Overbought (≥70) / Oversold (≤30) alerts for Nifty 50 |
+| **Trend Analysis** | MA5 & MA20 crossover detection |
+| **Market Mood** | Strong Bull → Strong Bear sentiment label |
+| **CSV History** | Auto-committed to `data/market_history.csv` |
+| **Data Source** | Yahoo Finance (free, no API key needed) |
+
+---
+
+## 🌡️ India VIX Safety Zones
+
+| VIX Range | Zone | Interpretation |
+|---|---|---|
+| < 13 | 🟢 ULTRA LOW | Extreme complacency — reversal risk |
+| 13–15 | 🟢 LOW | Calm market — bullish bias |
+| 15–18 | 🟡 MODERATE | Normal range — mild caution |
+| 18–20 | 🟠 ELEVATED | Volatility picking up |
+| 20–25 | 🔴 HIGH | Fear in market — be defensive |
+| 25–30 | 🔴 VERY HIGH | Panic zone — sharp swings likely |
+| > 30 | ⛔ EXTREME | Crisis / Black Swan territory |
+
+---
+
+## 📱 Sample Telegram Message
+
+```
+🇮🇳 India Market Pulse  |  01 Mar 2026  11:30 AM IST
+🟢 Live Market Session
+━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 SENSEX  📈
+  Price : 74,235.60
+  Change: +312.45 (+0.42%)
+  H/L   : 74,450.00 / 73,980.20
+  1W    : +1.2%    1M: +3.4%
+
+📈 NIFTY 50  📈
+  Price : 22,508.75
+  Change: +95.30 (+0.43%)
+  H/L   : 22,580.00 / 22,350.00
+  1W    : +1.1%    1M: +3.2%
+  RSI   : Normal (54.3)
+  Trend : 📈 Strong Uptrend | above MA5 ✅ | above MA20 ✅
+
+🌡️ INDIA VIX
+  Level : 14.20  🟢 LOW
+  Meter : [████░░░░░░] 14.2
+  Signal: Calm market — bullish bias, low volatility
+  Change: -2.10%
+
+🧭 Market Mood: MILD BULL 🐂
+━━━━━━━━━━━━━━━━━━━━━━━━━
+🤖 Auto-update every 5 min | Data: Yahoo Finance
+```
+
+---
+
+## 📈 CSV Schema
+
+```
+timestamp, sensex, sensex_chg_pct, nifty50, nifty50_chg_pct,
+india_vix, vix_zone, nifty_rsi, nifty_trend,
+week_chg_nifty, month_chg_nifty
+```
+
+---
+
+## ⚙️ Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `TELEGRAM_BOT_TOKEN` | — | Set via GitHub Secret |
+| `TELEGRAM_CHAT_ID` | — | Set via GitHub Secret |
+| `CSV_PATH` | `data/market_history.csv` | Path for CSV file |
+| `FORCE_RUN` | `false` | Set to `true` to bypass market hours check |
+
+---
+
+## 🛡️ Disclaimer
+
+This tool is for **informational purposes only** and does not constitute financial advice. 
+Always do your own research before making investment decisions.
+
+---
+
+## 📄 License
+
+MIT — free to use, modify, and distribute.
