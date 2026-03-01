@@ -1,151 +1,148 @@
-# 🇮🇳 India Market Tracker
+# 🇮🇳 India Market Tracker v2
 
-> Automated **Sensex · Nifty 50 · India VIX** tracker with Telegram alerts and GitHub CSV history.
-
-![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-Automated-blue?logo=github-actions)
-![Python](https://img.shields.io/badge/Python-3.11-green?logo=python)
-![Data](https://img.shields.io/badge/Data-Yahoo_Finance-purple)
+> **Sensex · Nifty 50 · India VIX · 12 Sector Heatmap** — fully automated via GitHub Actions, delivered to Telegram every 5 minutes during market hours.
 
 ---
 
-## 📦 Files
+## 📦 Repo Structure
 
 ```
 ├── market_tracker.py                    ← Main script
-├── requirements.txt                     ← Python dependencies
+├── requirements.txt                     ← Python deps (yfinance, pytz, requests)
 ├── data/
-│   └── market_history.csv              ← Auto-updated history (committed by bot)
+│   └── market_history.csv              ← Auto-committed history
 └── .github/
     └── workflows/
-        └── market_tracker.yml          ← GitHub Actions (every 5 min)
+        └── market_tracker.yml          ← GitHub Actions schedule
 ```
 
 ---
 
-## 🚀 Quick Setup
+## 🚀 Setup (5 minutes)
 
-### Step 1 — Fork / Clone this repo
+### 1. Fork this repo
 
-### Step 2 — Create a Telegram Bot
+### 2. Create a Telegram Bot
+1. Message **@BotFather** → `/newbot` → copy the **Bot Token**
+2. Start a chat with your bot, then visit:
+   `https://api.telegram.org/bot<TOKEN>/getUpdates`
+3. Send `/start` to your bot — your **Chat ID** appears in the JSON
 
-1. Open Telegram → search **@BotFather**
-2. Send `/newbot` → follow prompts → copy the **Bot Token**
-3. Start a chat with your bot (or add it to a group)
-4. Get your **Chat ID**:
-   - For personal: visit `https://api.telegram.org/bot<TOKEN>/getUpdates` after sending `/start`
-   - For a group: add `@userinfobot` to the group
+### 3. Add GitHub Secrets
+**Settings → Secrets and variables → Actions → New repository secret**
 
-### Step 3 — Add GitHub Secrets
+| Secret               | Value                   |
+|----------------------|-------------------------|
+| `TELEGRAM_BOT_TOKEN` | Token from BotFather    |
+| `TELEGRAM_CHAT_ID`   | Your personal/group ID  |
 
-Go to your repo → **Settings → Secrets and variables → Actions → New repository secret**
-
-| Secret Name          | Value                        |
-|----------------------|------------------------------|
-| `TELEGRAM_BOT_TOKEN` | Your bot token from BotFather |
-| `TELEGRAM_CHAT_ID`   | Your chat or group ID        |
-
-### Step 4 — Enable GitHub Actions
-
-Go to **Actions tab** → enable workflows if prompted.
-
-### Step 5 — Test it manually
-
-Go to **Actions → India Market Tracker → Run workflow** → set `force_run = true`
+### 4. Test it
+**Actions → India Market Tracker → Run workflow → force_run = true**
 
 ---
 
-## 📊 Features
+## 📱 What You Get in Telegram
 
-| Feature | Details |
-|---|---|
-| **Indices** | Sensex (^BSESN), Nifty 50 (^NSEI), India VIX (^INDIAVIX) |
-| **Update Frequency** | Every 5 minutes during market hours (Mon–Fri 9:15–15:30 IST) |
-| **Drop Alerts** | 🚨 Separate alert if Sensex or Nifty drops ≥1% from previous close |
-| **VIX Spike Alert** | 🚨 Alert if India VIX spikes ≥15% in a session |
-| **RSI Signal** | Overbought (≥70) / Oversold (≤30) alerts for Nifty 50 |
-| **Trend Analysis** | MA5 & MA20 crossover detection |
-| **Market Mood** | Strong Bull → Strong Bear sentiment label |
-| **CSV History** | Auto-committed to `data/market_history.csv` |
-| **Data Source** | Yahoo Finance (free, no API key needed) |
-
----
-
-## 🌡️ India VIX Safety Zones
-
-| VIX Range | Zone | Interpretation |
-|---|---|---|
-| < 13 | 🟢 ULTRA LOW | Extreme complacency — reversal risk |
-| 13–15 | 🟢 LOW | Calm market — bullish bias |
-| 15–18 | 🟡 MODERATE | Normal range — mild caution |
-| 18–20 | 🟠 ELEVATED | Volatility picking up |
-| 20–25 | 🔴 HIGH | Fear in market — be defensive |
-| 25–30 | 🔴 VERY HIGH | Panic zone — sharp swings likely |
-| > 30 | ⛔ EXTREME | Crisis / Black Swan territory |
-
----
-
-## 📱 Sample Telegram Message
-
+### Message 1 — Market Overview
 ```
-🇮🇳 India Market Pulse  |  01 Mar 2026  11:30 AM IST
-🟢 Live Market Session
-━━━━━━━━━━━━━━━━━━━━━━━━━
+🇮🇳 India Market Pulse  [Live]
+📅 01 Mar 2026  11:30 AM IST
+━━━━━━━━━━━━━━━━━━━━━━━
 
-📊 SENSEX  📈
-  Price : 74,235.60
-  Change: +312.45 (+0.42%)
-  H/L   : 74,450.00 / 73,980.20
-  1W    : +1.2%    1M: +3.4%
+📊 SENSEX 📈
+  74,235.60  +312.45 (+0.42%)
+  H 74,450  L 73,980
+  1W +1.2%  1M +3.4%
 
-📈 NIFTY 50  📈
-  Price : 22,508.75
-  Change: +95.30 (+0.43%)
-  H/L   : 22,580.00 / 22,350.00
-  1W    : +1.1%    1M: +3.2%
-  RSI   : Normal (54.3)
-  Trend : 📈 Strong Uptrend | above MA5 ✅ | above MA20 ✅
+📈 NIFTY 50 📈
+  22,508.75  +95.30 (+0.43%)
+  H 22,580  L 22,350
+  1W +1.1%  1M +3.2%
+  RSI 54.3 ➡️  |  Strong Up 📈
 
 🌡️ INDIA VIX
-  Level : 14.20  🟢 LOW
-  Meter : [████░░░░░░] 14.2
-  Signal: Calm market — bullish bias, low volatility
-  Change: -2.10%
+  14.20  LOW 🟢
+  [████░░░░░░]
+  Calm market - bullish bias
+  Change -2.10%
 
-🧭 Market Mood: MILD BULL 🐂
-━━━━━━━━━━━━━━━━━━━━━━━━━
-🤖 Auto-update every 5 min | Data: Yahoo Finance
+🧭 Mood: MILD BULL 🐂
+```
+
+### Message 2 — Sector Heatmap
+```
+🏭 Sector Heatmap
+🟢🟢🟢🟢🟢🟢🟢🟢🔴🔴🔴🔴
+8 Green  4 Red  (12 sectors)
+
+Sector    Chg%   Sector    Chg%
+────────────────────────────────
+IT       ▲1.8%  Media    ▼0.9%
+Bank     ▲1.2%  Realty   ▼0.6%
+Auto     ▲0.9%  Metal    ▼0.4%
+Finance  ▲0.7%  Energy   ▼0.1%
+...
+
+📌 Rotation Signal
+📊 Selective buying — 8/12 up
+🔥 IT leading +1.8%
+   → Market betting on: tech rally / global risk-on
+❄️  Media weakest -0.9%  — avoid near-term
+```
+
+### Bonus: Alert Ping (when triggered)
+```
+🚨🚨 MARKET ALERT 🚨🚨
+⚠️ NIFTY 50 ▼1.3% from prev close
+⚠️ Sector collapse: Realty (-2.3%), Metal (-2.1%)
 ```
 
 ---
 
-## 📈 CSV Schema
+## ⚙️ Features
+
+| Feature | Detail |
+|---|---|
+| **Indices** | Sensex, Nifty 50, India VIX |
+| **Sectors** | 12 NSE sector indices (parallel fetch) |
+| **Alerts** | Drop ≥1% from prev close |
+| **VIX Alert** | If VIX spikes ≥15% or reaches ≥25 |
+| **RSI Alert** | Nifty RSI ≥75 (overbought) or ≤25 (oversold) |
+| **Sector Alert** | Any sector drops ≥2% |
+| **Rotation Signal** | Identifies leading sector + market narrative |
+| **Breadth** | How many sectors up vs down |
+| **CSV** | Auto-committed with sector columns |
+
+---
+
+## 🌡️ India VIX Zones
+
+| Range | Zone | Action |
+|---|---|---|
+| < 13 | 🟢 ULTRA LOW | Watch for complacency reversal |
+| 13–15 | 🟢 LOW | Bullish bias — ride the trend |
+| 15–18 | 🟡 MODERATE | Normal — mild caution |
+| 18–20 | 🟠 ELEVATED | Reduce leveraged bets |
+| 20–25 | 🔴 HIGH | Defensive positioning |
+| 25–30 | 🔴 VERY HIGH | Panic — reduce exposure |
+| > 30 | ⛔ EXTREME | Crisis — max caution |
+
+---
+
+## 📊 CSV Schema
 
 ```
 timestamp, sensex, sensex_chg_pct, nifty50, nifty50_chg_pct,
-india_vix, vix_zone, nifty_rsi, nifty_trend,
-week_chg_nifty, month_chg_nifty
+india_vix, vix_zone, nifty_rsi, nifty_trend, nifty_1w_pct, nifty_1m_pct,
+top_sector, bottom_sector, sectors_green, sectors_red,
+bank_pct, it_pct, fmcg_pct, auto_pct, metal_pct, pharma_pct,
+realty_pct, energy_pct, psu_bank_pct, finance_pct, media_pct, infra_pct
 ```
-
----
-
-## ⚙️ Environment Variables
-
-| Variable | Default | Description |
-|---|---|---|
-| `TELEGRAM_BOT_TOKEN` | — | Set via GitHub Secret |
-| `TELEGRAM_CHAT_ID` | — | Set via GitHub Secret |
-| `CSV_PATH` | `data/market_history.csv` | Path for CSV file |
-| `FORCE_RUN` | `false` | Set to `true` to bypass market hours check |
 
 ---
 
 ## 🛡️ Disclaimer
-
-This tool is for **informational purposes only** and does not constitute financial advice. 
-Always do your own research before making investment decisions.
+Informational purposes only — not financial advice. Always DYOR.
 
 ---
-
-## 📄 License
-
-MIT — free to use, modify, and distribute.
+MIT License
