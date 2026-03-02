@@ -41,7 +41,7 @@ SECTORS = {
     "^CNXRealty":  "Realty",
     "^CNXEnergy":  "Energy",
     "^CNXPSUBANK": "PSU Bank",
-    "^CNXFINANCE": "Finance",
+    "^CNXFIN": "Finance",
     "^CNXMedia":   "Media",
     "^CNXINFRA":   "Infra",
 }
@@ -57,7 +57,7 @@ SECTOR_THEMES = {
     "^CNXRealty":  "low rates / housing cycle",
     "^CNXEnergy":  "oil & infra capex",
     "^CNXPSUBANK": "PSU reforms / rate play",
-    "^CNXFINANCE": "credit growth / NBFC rally",
+    "^CNXFIN": "credit growth / NBFC rally",
     "^CNXMedia":   "consumer sentiment uptick",
     "^CNXINFRA":   "government capex / infra push",
 }
