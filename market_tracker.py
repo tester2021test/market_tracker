@@ -252,10 +252,6 @@ def sector_emoji(p):
     return "🔴🔴"
 
 def build_sector_block(sector_data):
-    """
-    Returns (block_text, top_gainer_sym, top_loser_sym, green_count, red_count)
-    Compact two-column layout sorted best to worst.
-    """
     if not sector_data:
         return "Sector data unavailable", None, None, 0, 0
 
@@ -271,23 +267,21 @@ def build_sector_block(sector_data):
 
     lines = []
 
-    # ── Breadth bar ──
     bar = "🟢" * g_cnt + "🔴" * r_cnt
     lines.append(f"{bar}")
-    lines.append(f"<b>{g_cnt} Green  {r_cnt} Red</b>  ({total} sectors)\n")
+    lines.append(f"{g_cnt} Green  {r_cnt} Red  ({total} sectors)\n")
 
-    # ── Two-column heatmap: left = top half, right = bottom half ──
     mid  = math.ceil(len(ranked) / 2)
     left = ranked[:mid]
-    right = list(reversed(ranked[mid:]))  # worst at top of right column
+    right = list(reversed(ranked[mid:]))
 
-    lines.append("<code>Sector    Chg%   Sector    Chg%</code>")
-    lines.append("<code>────────────────────────────────</code>")
+    lines.append(f"{'Sector':<10} {'Chg%':>6}   {'Sector':<10} {'Chg%':>6}")
+    lines.append("─" * 36)
 
     for i in range(max(len(left), len(right))):
         def cell(item):
             if item is None:
-                return f"{'':16s}"
+                return f"{'':18s}"
             sym, p = item
             name = SECTORS[sym][:8].ljust(8)
             dot  = "▲" if p >= 0 else "▼"
@@ -295,19 +289,17 @@ def build_sector_block(sector_data):
 
         l = left[i]  if i < len(left)  else None
         r = right[i] if i < len(right) else None
-        lines.append(f"<code>{cell(l)}  {cell(r)}</code>")
+        lines.append(f"{cell(l)}  {cell(r)}")
 
     return "\n".join(lines), top_g, top_l, g_cnt, r_cnt
 
 
 def rotation_insight(sector_data, top_g_sym, top_l_sym, g_cnt, r_cnt):
-    """Short market rotation narrative."""
     if not sector_data:
         return ""
     total = len(sector_data)
     parts = []
 
-    # Breadth story
     if g_cnt >= round(total * 0.75):
         parts.append(f"📊 Broad rally — {g_cnt}/{total} sectors advancing")
     elif r_cnt >= round(total * 0.75):
@@ -317,20 +309,18 @@ def rotation_insight(sector_data, top_g_sym, top_l_sym, g_cnt, r_cnt):
     else:
         parts.append(f"📊 Selective selling — {r_cnt}/{total} down")
 
-    # Leading sector theme
     if top_g_sym:
         p     = sector_data[top_g_sym]
         name  = SECTORS[top_g_sym]
         theme = SECTOR_THEMES.get(top_g_sym, "")
-        parts.append(f"🔥 <b>{name}</b> leading +{p:.2f}%")
+        parts.append(f"🔥 {name} leading +{p:.2f}%")
         if theme:
-            parts.append(f"   → Market betting on: <i>{theme}</i>")
+            parts.append(f"   → Market betting on: {theme}")
 
-    # Lagging sector
     if top_l_sym:
         p    = sector_data[top_l_sym]
         name = SECTORS[top_l_sym]
-        parts.append(f"❄️  <b>{name}</b> weakest {p:.2f}%  — avoid near-term")
+        parts.append(f"❄️  {name} weakest {p:.2f}%  — avoid near-term")
 
     return "\n".join(parts)
 
@@ -361,7 +351,6 @@ def compute_alerts(sensex, nifty, vix, sector_data):
         elif nifty["rsi"] <= 25:
             alerts.append(f"Nifty RSI {nifty['rsi']} — EXTREME OVERSOLD (bounce zone)")
 
-    # Sector collapse
     if sector_data:
         hard_drops = [(SECTORS[s], p) for s, p in sector_data.items() if p <= -2.0]
         hard_drops.sort(key=lambda x: x[1])
@@ -375,7 +364,6 @@ def compute_alerts(sensex, nifty, vix, sector_data):
 # TELEGRAM SENDER
 # ─────────────────────────────────────────────────────────
 def send_telegram(text):
-    # Validate message length (Telegram cap = 4096)
     if len(text) > 4096:
         text = text[:4090] + "\n..."
         print(f"  ⚠️  Message trimmed to 4096 chars")
@@ -400,14 +388,10 @@ def send_telegram(text):
         return True
     except Exception as e:
         print(f"  ❌ Telegram error: {e}")
-        try:
-            print(f"     {r.text[:200]}")
-        except Exception:
-            pass
         return False
 
 # ─────────────────────────────────────────────────────────
-# MESSAGE 1 — Market Overview  (~1000 chars)
+# MESSAGE 1 — Market Overview
 # ─────────────────────────────────────────────────────────
 def build_msg1(sensex, nifty, vix, alerts, now_str, sess):
     vix_label, vix_desc = get_vix_zone(vix["current"])
@@ -418,25 +402,25 @@ def build_msg1(sensex, nifty, vix, alerts, now_str, sess):
     alert_block = ""
     if alerts:
         alert_block = (
-            "\n\n🚨 <b>ALERTS</b>\n" +
+            "\n\n🚨 ALERTS\n" +
             "\n".join(f"  • {a}" for a in alerts)
         )
 
     return (
-        f"<b>🇮🇳 India Market Pulse</b>  [{sess}]\n"
+        f"🇮🇳 India Market Pulse  [{sess}]\n"
         f"📅 {now_str}\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"{'─'*30}\n"
 
-        f"\n<b>📊 SENSEX</b> {arrow(sensex['chg_p'])}\n"
-        f"  <b>{fmt(sensex['current'])}</b>  "
+        f"\n📊 SENSEX {arrow(sensex['chg_p'])}\n"
+        f"  {fmt(sensex['current'])}  "
         f"{sign(sensex['chg'])}{fmt(sensex['chg'])} "
         f"({sign(sensex['chg_p'])}{fmt(sensex['chg_p'])}%)\n"
         f"  H {fmt(sensex['high'])}  L {fmt(sensex['low'])}\n"
         f"  1W {sign(sensex['week_p'])}{fmt(sensex['week_p'])}%  "
         f"1M {sign(sensex['month_p'])}{fmt(sensex['month_p'])}%\n"
 
-        f"\n<b>📈 NIFTY 50</b> {arrow(nifty['chg_p'])}\n"
-        f"  <b>{fmt(nifty['current'])}</b>  "
+        f"\n📈 NIFTY 50 {arrow(nifty['chg_p'])}\n"
+        f"  {fmt(nifty['current'])}  "
         f"{sign(nifty['chg'])}{fmt(nifty['chg'])} "
         f"({sign(nifty['chg_p'])}{fmt(nifty['chg_p'])}%)\n"
         f"  H {fmt(nifty['high'])}  L {fmt(nifty['low'])}\n"
@@ -444,48 +428,32 @@ def build_msg1(sensex, nifty, vix, alerts, now_str, sess):
         f"1M {sign(nifty['month_p'])}{fmt(nifty['month_p'])}%\n"
         f"  RSI {rsi_tag(nifty['rsi'])}  |  {nifty['trend']}\n"
 
-        f"\n<b>🌡️ INDIA VIX</b>\n"
-        f"  <b>{fmt(vix['current'])}</b>  {vix_label}\n"
+        f"\n🌡️ INDIA VIX\n"
+        f"  {fmt(vix['current'])}  {vix_label}\n"
         f"  [{vix_bar}]\n"
         f"  {vix_desc}\n"
         f"  Change {sign(vix['chg_p'])}{fmt(vix['chg_p'])}%\n"
 
-        f"\n<b>🧭 Mood:</b> {mood(avg_chg)}"
+        f"\n🧭 Mood: {mood(avg_chg)}"
         f"{alert_block}"
     )
 
 # ─────────────────────────────────────────────────────────
-# MESSAGE 2 — Sector Heatmap  (~1500 chars)
+# MESSAGE 2 — Sector Heatmap
 # ─────────────────────────────────────────────────────────
 def build_msg2(sector_data, nifty_chg_p, now_str):
     block, top_g, top_l, g_cnt, r_cnt = build_sector_block(sector_data)
     insight = rotation_insight(sector_data, top_g, top_l, g_cnt, r_cnt)
 
     return (
-        f"<b>🏭 Sector Heatmap</b>\n"
+        f"🏭 Sector Heatmap\n"
         f"📅 {now_str}\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"{'─'*30}\n\n"
         f"{block}\n\n"
-        f"<b>📌 Rotation Signal</b>\n"
+        f"📌 Rotation Signal\n"
         f"{insight}\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"<i>🤖 Every 5 min  |  NSE via Yahoo Finance</i>"
-    )
-
-# ─────────────────────────────────────────────────────────
-# ALERT PING — loud separate message for major events
-# ─────────────────────────────────────────────────────────
-def build_alert_msg(alerts, sensex, nifty, now_str):
-    lines = "\n".join(f"  ⚠️ {a}" for a in alerts)
-    return (
-        f"🚨🚨 <b>MARKET ALERT</b> 🚨🚨\n"
-        f"📅 {now_str}\n\n"
-        f"{lines}\n\n"
-        f"Sensex <b>{fmt(sensex['current'])}</b> "
-        f"({sign(sensex['chg_p'])}{fmt(sensex['chg_p'])}%)  "
-        f"Nifty <b>{fmt(nifty['current'])}</b> "
-        f"({sign(nifty['chg_p'])}{fmt(nifty['chg_p'])}%)\n\n"
-        f"<i>Review your positions!</i>"
+        f"{'─'*30}\n"
+        f"🤖 Every 5 min  |  NSE via Yahoo Finance"
     )
 
 # ─────────────────────────────────────────────────────────
@@ -522,7 +490,6 @@ def update_csv(sensex, nifty, vix, sector_data):
         "sectors_red":     r_cnt,
     }
 
-    # Also add individual sector columns
     for sym, name in SECTORS.items():
         col = name.lower().replace(" ", "_") + "_pct"
         row[col] = sector_data.get(sym, "")
@@ -550,7 +517,6 @@ def main():
     print(f"{'='*60}")
     print(f"  Session: {sess}")
 
-    # ── Market hours guard ──
     if not FORCE_RUN and not is_market_open():
         if sess == "Pre-Open":
             print("  Pre-open mode — continuing...")
@@ -558,7 +524,6 @@ def main():
             print("  Market closed. Set FORCE_RUN=true to override.")
             return
 
-    # ── 1. Fetch core indices ──
     print("\n📡 Fetching core indices...")
     try:
         sensex = fetch_ticker("^BSESN")
@@ -578,7 +543,6 @@ def main():
     except Exception as e:
         print(f"  ❌ VIX: {e}"); return
 
-    # ── 2. Fetch sectors (parallel) ──
     print("\n📡 Fetching 12 sector indices in parallel...")
     sector_data = fetch_sectors()
     print(f"  ✅ Got {len(sector_data)}/{len(SECTORS)} sectors")
@@ -588,21 +552,18 @@ def main():
             bar = "█" * int(min(abs(p) / 0.3, 10))
             print(f"     {'▲' if p >= 0 else '▼'}  {SECTORS[sym]:<12} {sign(p)}{p:.2f}%  {bar}")
 
-    # ── 3. Alerts ──
     alerts = compute_alerts(sensex, nifty, vix, sector_data)
     if alerts:
         print(f"\n🚨 {len(alerts)} alert(s)")
         for a in alerts:
             print(f"   • {a}")
 
-    # ── 4. Update CSV ──
     print("\n💾 Updating CSV...")
     try:
         update_csv(sensex, nifty, vix, sector_data)
     except Exception as e:
         print(f"  ⚠️  CSV: {e}")
 
-    # ── 5. Telegram ──
     print("\n📤 Sending Telegram...")
     msg1 = build_msg1(sensex, nifty, vix, alerts, now_str, sess)
     msg2 = build_msg2(sector_data, nifty["chg_p"], now_str)
@@ -611,18 +572,16 @@ def main():
     print(f"  MSG2: {len(msg2)} chars")
 
     send_telegram(msg1)
-    time.sleep(3.5)
+    time.sleep(1)
     send_telegram(msg2)
 
-    # Separate loud ping for major events
     critical = any(
         kw in a for a in alerts
         for kw in ("SENSEX", "NIFTY 50", "PANIC", "collapse", "VIX spiked")
     )
     if alerts and critical:
-        time.sleep(3.5)
+        time.sleep(1)
         print("  🚨 Sending alert ping...")
-        send_telegram(build_alert_msg(alerts, sensex, nifty, now_str))
 
     print(f"\n✅ Done — {datetime.datetime.now(IST).strftime('%H:%M:%S IST')}\n")
 
