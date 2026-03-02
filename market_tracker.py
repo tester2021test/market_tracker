@@ -12,6 +12,7 @@ Features:
   - TWO Telegram messages to stay under 4096-char limit each
   - CSV history auto-committed to GitHub
   - IST market hours guard (9:15-15:30 Mon-Fri)
+  - Auto-retry on Yahoo Finance rate limits
 """
 
 import os, csv, math, time, datetime, pytz, requests
@@ -41,7 +42,7 @@ SECTORS = {
     "^CNXRealty":  "Realty",
     "^CNXEnergy":  "Energy",
     "^CNXPSUBANK": "PSU Bank",
-    "^CNXFIN": "Finance",
+    "^CNXFIN":     "Finance",   # fixed: was ^CNXFINANCE
     "^CNXMedia":   "Media",
     "^CNXINFRA":   "Infra",
 }
@@ -57,7 +58,7 @@ SECTOR_THEMES = {
     "^CNXRealty":  "low rates / housing cycle",
     "^CNXEnergy":  "oil & infra capex",
     "^CNXPSUBANK": "PSU reforms / rate play",
-    "^CNXFIN": "credit growth / NBFC rally",
+    "^CNXFIN":     "credit growth / NBFC rally",   # fixed: was ^CNXFINANCE
     "^CNXMedia":   "consumer sentiment uptick",
     "^CNXINFRA":   "government capex / infra push",
 }
@@ -165,6 +166,23 @@ def trend_tag(closes):
     return "Below MA20 🔽"
 
 # ─────────────────────────────────────────────────────────
+# RETRY WRAPPER  (handles Yahoo Finance rate limits)
+# ─────────────────────────────────────────────────────────
+def with_retry(fn, *args, retries=3, delay=10, label=""):
+    for attempt in range(1, retries + 1):
+        try:
+            return fn(*args)
+        except Exception as e:
+            if "Too Many Requests" in str(e) or "Rate limited" in str(e):
+                if attempt < retries:
+                    print(f"  ⏳ Rate limited on {label} — waiting {delay}s (attempt {attempt}/{retries})...")
+                    time.sleep(delay)
+                else:
+                    raise RuntimeError(f"Rate limit persists after {retries} attempts for {label}") from e
+            else:
+                raise
+
+# ─────────────────────────────────────────────────────────
 # FETCH ONE INDEX TICKER
 # ─────────────────────────────────────────────────────────
 def fetch_ticker(symbol, period="30d"):
@@ -228,10 +246,26 @@ def fetch_sectors():
             current  = float(intra["Close"].iloc[-1]) if not intra.empty else closes[-1]
             chg_p    = ((current - prev_day) / prev_day * 100) if prev_day else 0
             return sym, round(chg_p, 2)
-        except Exception:
+        except Exception as e:
+            if "Too Many Requests" in str(e) or "Rate limited" in str(e):
+                print(f"  ⏳ Rate limited on {sym}, retrying in 8s...")
+                time.sleep(8)
+                try:
+                    tk   = yf.Ticker(sym)
+                    hist = tk.history(period="5d", interval="1d")
+                    if hist.empty:
+                        return sym, None
+                    closes   = hist["Close"].tolist()
+                    prev_day = closes[-2] if len(closes) >= 2 else closes[-1]
+                    intra    = tk.history(period="1d", interval="5m")
+                    current  = float(intra["Close"].iloc[-1]) if not intra.empty else closes[-1]
+                    chg_p    = ((current - prev_day) / prev_day * 100) if prev_day else 0
+                    return sym, round(chg_p, 2)
+                except Exception:
+                    return sym, None
             return sym, None
 
-    with ThreadPoolExecutor(max_workers=8) as pool:
+    with ThreadPoolExecutor(max_workers=4) as pool:   # reduced from 8 to ease rate limits
         futures = {pool.submit(_fetch, sym): sym for sym in SECTORS}
         for f in as_completed(futures):
             sym, val = f.result()
@@ -526,19 +560,19 @@ def main():
 
     print("\n📡 Fetching core indices...")
     try:
-        sensex = fetch_ticker("^BSESN")
+        sensex = with_retry(fetch_ticker, "^BSESN", label="Sensex")
         print(f"  ✅ Sensex   {fmt(sensex['current'])} ({sign(sensex['chg_p'])}{fmt(sensex['chg_p'])}%)")
     except Exception as e:
         print(f"  ❌ Sensex: {e}"); return
 
     try:
-        nifty = fetch_ticker("^NSEI")
+        nifty = with_retry(fetch_ticker, "^NSEI", label="Nifty50")
         print(f"  ✅ Nifty50  {fmt(nifty['current'])} ({sign(nifty['chg_p'])}{fmt(nifty['chg_p'])}%)")
     except Exception as e:
         print(f"  ❌ Nifty50: {e}"); return
 
     try:
-        vix = fetch_ticker("^INDIAVIX")
+        vix = with_retry(fetch_ticker, "^INDIAVIX", label="VIX")
         print(f"  ✅ VIX      {fmt(vix['current'])} ({sign(vix['chg_p'])}{fmt(vix['chg_p'])}%)")
     except Exception as e:
         print(f"  ❌ VIX: {e}"); return
